@@ -14,39 +14,58 @@ def start():
     chassis_ctrl.set_rotate_speed(30)
     chassis_ctrl.set_trans_speed(0.5)
 
-    # Move to Position B and perform reset
+    # Move to Position B
     move_to_position_B()
 
-    # Move to Position C, E, G and perform tasks based on markers
-    for position in ['C', 'E', 'G']:
-        move_to_position(position)
-        scan_for_marker()
+    # Move to Positions C, D, E, F, G, and perform tasks based on markers
+    move_to_position('C', 116)
+    scan_for_marker()
 
-    # Move to Position F and handle different markers
-    move_to_position('F')
+    move_to_position('D', 116)
+    scan_for_marker()
+
+    move_to_position('E', 419)
+    scan_for_marker()
+
+    move_to_position('F', 116)
     scan_for_marker_at_F()
 
+    move_to_position('G', 118)
+    scan_for_marker()
+
     # Move to Position H (turnaround point)
-    move_to_position('H')
+    move_to_position('H', 569)
 
-    # Return to start position
-    move_to_position('A')
+    # Return to start position (A)
+    move_to_start_position()
 
-def move_to_position(position):
-    if position == 'B':
-        chassis_ctrl.move_with_distance(0, 1.48)
-    elif position == 'C':
-        chassis_ctrl.move_with_distance(0, 1.16)
-    elif position == 'E':
-        chassis_ctrl.move_with_distance(0, 1.16)
-    elif position == 'G':
-        chassis_ctrl.move_with_distance(0, 1.18)
-    elif position == 'F':
-        chassis_ctrl.move_with_distance(0, 1.18)
-    elif position == 'H':
-        chassis_ctrl.move_with_distance(0, 0.569)
-    elif position == 'A':
-        chassis_ctrl.move_with_distance(0, -3.494) # Moving back to start
+def move_to_position_B():
+    # Move to B in two segments
+    chassis_ctrl.move_with_distance(0, 0.84)
+    chassis_ctrl.move_with_distance(0, 1.48)
+    # Turn towards C
+    chassis_ctrl.rotate_with_degree(rm_define.clockwise, 90)
+
+def move_to_position(position, distance):
+    # Move to the specified position with the given distance
+    chassis_ctrl.move_with_distance(0, distance)
+    if position != 'H':
+        chassis_ctrl.rotate_with_degree(rm_define.clockwise, 90)
+
+def move_to_start_position():
+    # Reverse the movements to go back to start
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 180) # Turn around
+    chassis_ctrl.move_with_distance(0, 569) # H to G
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90)
+    chassis_ctrl.move_with_distance(0, 118) # G to F
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90)
+    chassis_ctrl.move_with_distance(0, 116) # F to E
+    chassis_ctrl.move_with_distance(0, 419) # E to D
+    chassis_ctrl.move_with_distance(0, 116) # D to C
+    chassis_ctrl.move_with_distance(0, 116) # C to B
+    chassis_ctrl.move_with_distance(0, 1.48)
+    chassis_ctrl.move_with_distance(0, 0.84)
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90) # Face forward
 
 def scan_for_marker():
     vision_ctrl.enable_detection(rm_define.vision_detection_marker)
