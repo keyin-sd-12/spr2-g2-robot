@@ -101,3 +101,7 @@ def vision_recognized_marker_number_three(msg):
     led_ctrl.set_top_led(rm_define.armor_top_all, 0, 0, 255, rm_define.effect_always_on)
 
 start()
+
+# Each move_to_position function call moves the robot to the specified position using the given distance.
+# The turn angles are based on the assumption that the robot needs to turn 90 degrees at each corner.
+# The return path to the start position (A) reverses the movements and adjusts turns to ensure the robot faces forward again.
