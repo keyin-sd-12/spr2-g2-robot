@@ -1,0 +1,84 @@
+# Description: Initial Python code to help set up the robot to move to each position and perform actions based on markers.
+# We may need to adjust movements, add more functionality, and handle edge cases based on the actual robot’s performance and the course setup at the campus.
+# We will test individual components of the code (e.g., movement, marker detection) before integrating them into the final code.
+
+# Author: Harini Manohar
+# Date: 31 July 2024
+
+def start():
+    # Set the robot to free mode
+    robot_ctrl.set_mode(rm_define.robot_mode_free)
+    
+    # Initial setup for speeds
+    gimbal_ctrl.set_rotate_speed(60)
+    chassis_ctrl.set_rotate_speed(30)
+    chassis_ctrl.set_trans_speed(0.5)
+
+    # Move to Position B and perform reset
+    move_to_position_B()
+
+    # Move to Position C, E, G and perform tasks based on markers
+    for position in ['C', 'E', 'G']:
+        move_to_position(position)
+        scan_for_marker()
+
+    # Move to Position F and handle different markers
+    move_to_position('F')
+    scan_for_marker_at_F()
+
+    # Move to Position H (turnaround point)
+    move_to_position('H')
+
+    # Return to start position
+    move_to_position('A')
+
+def move_to_position(position):
+    if position == 'B':
+        chassis_ctrl.move_with_distance(0, 1.48)
+    elif position == 'C':
+        chassis_ctrl.move_with_distance(0, 1.16)
+    elif position == 'E':
+        chassis_ctrl.move_with_distance(0, 1.16)
+    elif position == 'G':
+        chassis_ctrl.move_with_distance(0, 1.18)
+    elif position == 'F':
+        chassis_ctrl.move_with_distance(0, 1.18)
+    elif position == 'H':
+        chassis_ctrl.move_with_distance(0, 0.569)
+    elif position == 'A':
+        chassis_ctrl.move_with_distance(0, -3.494) # Moving back to start
+
+def scan_for_marker():
+    vision_ctrl.enable_detection(rm_define.vision_detection_marker)
+    gimbal_ctrl.yaw_ctrl(-90)
+    gimbal_ctrl.yaw_ctrl(180)
+    # Add detection and action code here
+
+def scan_for_marker_at_F():
+    vision_ctrl.enable_detection(rm_define.vision_detection_marker)
+    # Scan and perform actions based on the marker
+    gimbal_ctrl.yaw_ctrl(-90)
+    gimbal_ctrl.yaw_ctrl(180)
+    # Add specific actions for marker 1, 2, or 3
+
+def vision_recognized_marker_letter_F(msg):
+    vision_ctrl.disable_detection(rm_define.vision_detection_marker)
+    vision_ctrl.detect_marker_and_aim(rm_define.marker_letter_F)
+    gun_ctrl.fire_once()
+
+def vision_recognized_marker_number_one(msg):
+    vision_ctrl.disable_detection(rm_define.vision_detection_marker)
+    # Perform action for marker 1
+    led_ctrl.set_top_led(rm_define.armor_top_all, 255, 0, 0, rm_define.effect_always_on)
+
+def vision_recognized_marker_number_two(msg):
+    vision_ctrl.disable_detection(rm_define.vision_detection_marker)
+    # Perform action for marker 2
+    led_ctrl.set_top_led(rm_define.armor_top_all, 0, 255, 0, rm_define.effect_always_on)
+
+def vision_recognized_marker_number_three(msg):
+    vision_ctrl.disable_detection(rm_define.vision_detection_marker)
+    # Perform action for marker 3
+    led_ctrl.set_top_led(rm_define.armor_top_all, 0, 0, 255, rm_define.effect_always_on)
+
+start()
