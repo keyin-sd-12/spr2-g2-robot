@@ -1,0 +1,110 @@
+def start():
+    # Set the robot to free mode
+    robot_ctrl.set_mode(rm_define.robot_mode_free)
+    
+    # Initial setup for speeds
+    gimbal_ctrl.set_rotate_speed(60)
+    chassis_ctrl.set_rotate_speed(30)
+    chassis_ctrl.set_trans_speed(0.5)
+
+    # Move to Position B through a zig-zag path
+    move_to_position_B()
+
+    # Move to Positions C, D, E, F, G, and perform tasks based on markers
+    move_to_position('C', 116)
+    scan_for_marker()
+
+    move_to_position('D', 116)
+    scan_for_marker()
+
+    move_to_position('E', 419)
+    scan_for_marker()
+
+    move_to_position('F', 116)
+    scan_for_marker_at_F()
+
+    move_to_position('G', 118)
+    scan_for_marker()
+
+    # Move to Position H (turnaround point)
+    move_to_position('H', 569)
+
+    # Return to start position (A)
+    move_to_start_position()
+
+def move_to_position_B():
+    # Move to B through a zig-zag path
+    chassis_ctrl.move_with_distance(0, 0.84)  # Move forward 84 cm
+    chassis_ctrl.rotate_with_degree(rm_define.clockwise, 90)
+    chassis_ctrl.move_with_distance(0, 0.51)  # Move right 51 cm
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90)
+    chassis_ctrl.move_with_distance(0, 1.48)  # Move forward 148 cm
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90)
+    chassis_ctrl.move_with_distance(0, 1.16)  # Move left 116 cm
+    chassis_ctrl.rotate_with_degree(rm_define.clockwise, 90)
+    chassis_ctrl.move_with_distance(0, 1.64)  # Move forward 164 cm
+    chassis_ctrl.rotate_with_degree(rm_define.clockwise, 90)  # Face towards C
+
+def move_to_position(position, distance):
+    # Move to the specified position with the given distance
+    chassis_ctrl.move_with_distance(0, distance / 100)  # Convert cm to meters
+    if position != 'H':
+        chassis_ctrl.rotate_with_degree(rm_define.clockwise, 90)
+
+def move_to_start_position():
+    # Reverse the movements to go back to start
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 180)  # Turn around
+    chassis_ctrl.move_with_distance(0, 5.69)  # H to G
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90)
+    chassis_ctrl.move_with_distance(0, 1.18)  # G to F
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90)
+    chassis_ctrl.move_with_distance(0, 1.16)  # F to E
+    chassis_ctrl.move_with_distance(0, 4.19)  # E to D
+    chassis_ctrl.move_with_distance(0, 1.16)  # D to C
+    chassis_ctrl.move_with_distance(0, 1.16)  # C to B
+    # Retrace the zig-zag path back to A
+    chassis_ctrl.move_with_distance(0, 1.64)  # Move backward 164 cm
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90)
+    chassis_ctrl.move_with_distance(0, 1.16)  # Move right 116 cm
+    chassis_ctrl.rotate_with_degree(rm_define.clockwise, 90)
+    chassis_ctrl.move_with_distance(0, 1.48)  # Move backward 148 cm
+    chassis_ctrl.rotate_with_degree(rm_define.clockwise, 90)
+    chassis_ctrl.move_with_distance(0, 0.51)  # Move left 51 cm
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90)
+    chassis_ctrl.move_with_distance(0, 0.84)  # Move backward 84 cm
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90)  # Face forward
+
+def scan_for_marker():
+    vision_ctrl.enable_detection(rm_define.vision_detection_marker)
+    gimbal_ctrl.yaw_ctrl(-90)
+    gimbal_ctrl.yaw_ctrl(180)
+    # Add detection and action code here
+
+def scan_for_marker_at_F():
+    vision_ctrl.enable_detection(rm_define.vision_detection_marker)
+    # Scan and perform actions based on the marker
+    gimbal_ctrl.yaw_ctrl(-90)
+    gimbal_ctrl.yaw_ctrl(180)
+    # Add specific actions for marker 1, 2, or 3
+
+def vision_recognized_marker_letter_F(msg):
+    vision_ctrl.disable_detection(rm_define.vision_detection_marker)
+    vision_ctrl.detect_marker_and_aim(rm_define.marker_letter_F)
+    gun_ctrl.fire_once()
+
+def vision_recognized_marker_number_one(msg):
+    vision_ctrl.disable_detection(rm_define.vision_detection_marker)
+    # Perform action for marker 1
+    led_ctrl.set_top_led(rm_define.armor_top_all, 255, 0, 0, rm_define.effect_always_on)
+
+def vision_recognized_marker_number_two(msg):
+    vision_ctrl.disable_detection(rm_define.vision_detection_marker)
+    # Perform action for marker 2
+    led_ctrl.set_top_led(rm_define.armor_top_all, 0, 255, 0, rm_define.effect_always_on)
+
+def vision_recognized_marker_number_three(msg):
+    vision_ctrl.disable_detection(rm_define.vision_detection_marker)
+    # Perform action for marker 3
+    led_ctrl.set_top_led(rm_define.armor_top_all, 0, 0, 255, rm_define.effect_always_on)
+
+start()
