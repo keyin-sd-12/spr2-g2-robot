@@ -40,31 +40,29 @@ def start():
     move_to_start_position()
 
 def move_to_position_B():
-    # Move to B in two segments
-    chassis_ctrl.move_with_distance(0, 0.84)
-    chassis_ctrl.move_with_distance(0, 1.48)
+    # Move to B in one segment of 741 cm
+    chassis_ctrl.move_with_distance(0, 7.41)
     # Turn towards C
     chassis_ctrl.rotate_with_degree(rm_define.clockwise, 90)
 
 def move_to_position(position, distance):
     # Move to the specified position with the given distance
-    chassis_ctrl.move_with_distance(0, distance)
+    chassis_ctrl.move_with_distance(0, distance / 100)  # Convert cm to meters
     if position != 'H':
         chassis_ctrl.rotate_with_degree(rm_define.clockwise, 90)
 
 def move_to_start_position():
     # Reverse the movements to go back to start
     chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 180) # Turn around
-    chassis_ctrl.move_with_distance(0, 569) # H to G
+    chassis_ctrl.move_with_distance(0, 5.69) # H to G
     chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90)
-    chassis_ctrl.move_with_distance(0, 118) # G to F
+    chassis_ctrl.move_with_distance(0, 1.18) # G to F
     chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90)
-    chassis_ctrl.move_with_distance(0, 116) # F to E
-    chassis_ctrl.move_with_distance(0, 419) # E to D
-    chassis_ctrl.move_with_distance(0, 116) # D to C
-    chassis_ctrl.move_with_distance(0, 116) # C to B
-    chassis_ctrl.move_with_distance(0, 1.48)
-    chassis_ctrl.move_with_distance(0, 0.84)
+    chassis_ctrl.move_with_distance(0, 1.16) # F to E
+    chassis_ctrl.move_with_distance(0, 4.19) # E to D
+    chassis_ctrl.move_with_distance(0, 1.16) # D to C
+    chassis_ctrl.move_with_distance(0, 1.16) # C to B
+    chassis_ctrl.move_with_distance(0, 7.41) # B to A
     chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90) # Face forward
 
 def scan_for_marker():
