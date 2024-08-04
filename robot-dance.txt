@@ -1,0 +1,19 @@
+    # Celebrate
+    media_ctrl.play_sound(rm_define.media_custom_audio_3,wait_for_complete_flag=False)
+
+    chassis_ctrl.set_rotate_speed(300)
+    gimbal_ctrl.set_rotate_speed(280)
+    
+    led_ctrl.set_flash(rm_define.armor_all, 10)
+    led_ctrl.set_flash(rm_define.armor_all, 10)
+
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 360)
+    chassis_ctrl.rotate_with_degree(rm_define.clockwise, 360)
+    chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 360)
+
+    gimbal_ctrl.yaw_ctrl(250)
+    gimbal_ctrl.yaw_ctrl(250)
+    gimbal_ctrl.recenter()
+
+    led_ctrl.set_bottom_led(rm_define.armor_bottom_all, 200,40,70, rm_define.effect_flash)
+    led_ctrl.set_top_led(rm_define.armor_top_all, 225,0,10, rm_define.effect_flash)
