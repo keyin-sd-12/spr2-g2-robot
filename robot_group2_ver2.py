@@ -5,6 +5,8 @@
 # resets back to True after marker is found and processed
 marker_not_found = True
 
+do_not_move_forward = True
+
 # marker name of the last marker found
 ## maybe do not need this variable
 last_marker_name = ""
@@ -13,6 +15,7 @@ last_marker_name = ""
 # resets to False after robot dropped-off person at safety and returned
 # flags that robot has to go back and do not look for makers on the way back
 got_person = False
+already_going_back_to_stand = False
 
 # sets to True when all stops are done and robot is on the way home
 all_done_on_the_way_home = False
@@ -48,12 +51,14 @@ RESET_SLEEP_TIME = 6.0 # (s) time to sleep at the reset point
 DEFAULT_FLASH_PER_SECOND = 3 # default flash rate for the leds
 
 DEFAULT_TRANSLATION_SPEED = 0.5 # m/s
-DEFAULT_ROTATION_SPEED = 30
+DEFAULT_ROTATION_SPEED = 60
 DEFAULT_GIMBAL_ROT_SPEED = 30
+DISTANCE_TO_MOVE_CLOSER_TO_MARKER = 0.6 # m
+DISTANCE_TO_MOVE_SIDEWAYS_CLOSER_TO_MARKER = 0.8 # m
 
 # dictionary of zigzag movements
 DICT_ZIGZAG = {        
-                'distance':     [0 ,     85,      35,      164,     42,     60,    148,      51,    84,     33],
+                'distance':     [0 ,     85-3,      35,      164-3,     42,     60,    148,      51,    84,     33+7+20-5],
                 'angle':        [90-3.5, 90-3.5,  90-3.5,  90-3.5,  90,     39.6,  90-39.6,  90,    90,     0],
                 'clockwise':    [False,  True,    True,    False,   False,  True,  True,     True,  False,  True]
 }           
@@ -63,7 +68,7 @@ DICT_ZIGZAG = {
 # cm, index 0 = start point A, index 8 = finish point H
 DICT_STOPS = {
                'name':     ['A', 'B0',                  'B',    'C',    'D',    'E',    'F',    'G',    'H' ],
-               'distance': [ 0,   585,  5+35+10+42+96+51+33, 665+32, 458+50, 371+38, 419+58, 398+40, 569+10 ]
+               'distance': [ 0,   585,  5+35+10+42+96+51+33+27-10, 665+32-27, 458+50, 371+38, 419+58, 398+40, 569+10 ]
 }
 
 # 'forward': list of adjustments to the stop points (in cm) on the way up while returning after dropping off the person, 
@@ -74,14 +79,20 @@ DICT_STOPS = {
 #
 # *** these corrections are added to the distances between the stop points in the DICT_STOPS['distance'] list)
 DICT_ADJ = {
-    DIRECTION_FORWARD:  [ 0,    0,                          0,      0,      0,      0,      0,      0,      0 ],
-    DIRECTION_BACKWARD: [ 0,    0,                          0,      0,      0,      0,      0,      0,      0 ]
+    DIRECTION_FORWARD:  [ 0,    0,                          0,      0,      -5,      0,      0,      0,      -10 ],
+    DIRECTION_BACKWARD: [ 0,    -42,                          +30,      0,      0,      0,      0,      0,      0 ]
 }
 
 # set defining which stops are reset points
 SET_RESETS= { 'A', 'B', 'D', 'F', 'H' }
 # set defining which stops have markers to scan
 SET_MARKERS = { 'C', 'E', 'F', 'G' }
+
+# degugging set of points - to skip movement in them
+#SET_DEBUGGING = { 'A', 'B0', 'B', 'C', 'D', 'E', 'F', 'G', 'H' }
+SET_DEBUGGING = { }
+
+WAIT_FOR_CLAPS = False
 
 # contains total distance from "0" to reach each stop point (per 'DICT_STOPS'), list is filled out in the 'start' function
 list_distances = []
@@ -90,6 +101,20 @@ list_distances = []
 # distance_counter = 0
 # total_distance = 0
 # marker_counter = 0
+
+def sound_recognized_applause_twice(msg):
+    print("Claps detected!..")
+    #media_ctrl.disable_sound_recognition(rm_define.sound_detection_applause)
+    
+def wait_for_clap():
+    # enable applause detection
+    media_ctrl.enable_sound_recognition(rm_define.sound_detection_applause)
+    # wait until 2 claps is detected
+    print("waiting for 2 claps to start...")
+    media_ctrl.cond_wait(rm_define.cond_sound_recognized_applause_twice)
+    # disable applause detection after 2 claps is detected
+    media_ctrl.disable_sound_recognition(rm_define.sound_detection_applause)
+
 
 # function returns list of smaller distances if total distance is bigger than 490 cm
 # otherwise returns list with only one element - total distance
@@ -114,26 +139,26 @@ def move_forward(distance_to_move):
     for step_no in range(number_of_distance_steps):
         dist_cm = small_distances[step_no]
         print('move', dist_cm, '(step', step_no+1, 'of', number_of_distance_steps,')')
-        #if (dist_cm != 0): chassis_ctrl.move_with_distance(0, float(dist_cm)/100.0)
+        if (dist_cm != 0): chassis_ctrl.move_with_distance(0, float(dist_cm)/100.0)
 
 # do zigzag at point B
 def do_zigzag():
-    pass
     for i in range(len(DICT_ZIGZAG['distance'])):
         print('Zigzag:', i, '-- distance:', DICT_ZIGZAG['distance'][i], '-- angle:', DICT_ZIGZAG['angle'][i], '-- clockwise:', DICT_ZIGZAG['clockwise'][i])
+        time.sleep(1)
         if DICT_ZIGZAG['distance'][i] != 0:  # skip movement if distance is 0
-            pass
-            #chassis_ctrl.move_with_distance(0, float(DICT_ZIGZAG['distance'][i]) /100.0)
+            chassis_ctrl.move_with_distance(0, float(DICT_ZIGZAG['distance'][i]) /100.0)
+        time.sleep(1)
         if DICT_ZIGZAG['angle'][i] != 0:  # skip rotation if angle is 0
             direction = rm_define.clockwise if DICT_ZIGZAG['clockwise'][i] else rm_define.anticlockwise
-            #chassis_ctrl.rotate_with_degree(direction, DICT_ZIGZAG['angle'][i])
+            chassis_ctrl.rotate_with_degree(direction, DICT_ZIGZAG['angle'][i])
     time.sleep(0.5)
 
 
 # move robot closer to to the wall to scan the marker    
 def move_closer(distance, sideways=False):
     if sideways:
-        chassis_ctrl.move_with_distance(-90, distance*1.2)
+        chassis_ctrl.move_with_distance(-90, distance)
     else: 
         chassis_ctrl.rotate_with_degree(rm_define.anticlockwise, 90)
         chassis_ctrl.move_with_distance(0, distance)
@@ -151,7 +176,7 @@ def move_away(distance, sideways=False):
         if not got_person: 
             gimbal_ctrl.recenter()
             led_ctrl.turn_off(rm_define.armor_all)
-            led_ctrl.set_flash(rm_define.armor_all, DEFAULT_FLASH_PER_SECOND)
+            #led_ctrl.set_flash(rm_define.armor_all, DEFAULT_FLASH_PER_SECOND)
        
         direction = rm_define.anticlockwise if got_person else rm_define.clockwise
         chassis_ctrl.rotate_with_degree(direction, 90)
@@ -162,6 +187,7 @@ def move_away(distance, sideways=False):
 def scan_for_marker(sideways=False):
     global marker_not_found
 
+    print('***** Scanning for any marker *****')
     # turn on bottom leds with 'breath' effect, color white
     led_ctrl.set_bottom_led(rm_define.armor_bottom_all, 255, 255, 255, rm_define.effect_breath)
     
@@ -195,6 +221,8 @@ def scan_for_marker(sideways=False):
 
     # reset marker_not_found to True
     marker_not_found = True
+    
+    print('***** End of scanning for any marker *****')
 
 # marker 'P' found, has to bring the person to the stand
 # setting got_person to True, skip_next_movement to True
@@ -219,18 +247,27 @@ def vision_recognized_marker_letter_P(msg):
     vision_ctrl.disable_detection(rm_define.vision_detection_marker)    
     led_ctrl.turn_off(rm_define.armor_bottom_all)
     
+    print(' ***** Marker found:', last_marker_name, '*****')
+    
     # turn on the gun led for aiming
     led_ctrl.gun_led_on()
-    
+
+    print(' --> Start aiming:', last_marker_name, '<--')    
     vision_ctrl.detect_marker_and_aim(rm_define.marker_letter_P)
     media_ctrl.play_sound(rm_define.media_sound_recognize_success)
+    print(' --> Aiming ended:', last_marker_name, '<--')
 
     # if got person, return it to the stand with flashing red top leds
     led_ctrl.set_top_led(rm_define.armor_top_all, 255, 0, 0, rm_define.effect_breath)
 
     led_ctrl.gun_led_off()    
     gimbal_ctrl.recenter()    
+
+    print(' ***** End marker',last_marker_name, 'procedure *****')
+    
     time.sleep(2)
+    
+
  
 # marker 'F' found           
 def vision_recognized_marker_letter_F(msg):
@@ -243,11 +280,14 @@ def vision_recognized_marker_letter_F(msg):
     vision_ctrl.disable_detection(rm_define.vision_detection_marker)        
     led_ctrl.turn_off(rm_define.armor_bottom_all)    
     
+    print(' ***** Marker found:', last_marker_name, '*****')
     # turn on the gun led for aiming    
     led_ctrl.gun_led_on()
     
+    print(' --> Start aiming:', last_marker_name, '<--')
     vision_ctrl.detect_marker_and_aim(rm_define.marker_letter_F)
     media_ctrl.play_sound(rm_define.media_sound_recognize_success)
+    print(' --> Aiming ended:', last_marker_name, '<--')
 
     led_ctrl.set_flash(rm_define.armor_all, 10)
     led_ctrl.set_top_led(rm_define.armor_top_all, 0, 0, 255, rm_define.effect_flash)
@@ -262,6 +302,8 @@ def vision_recognized_marker_letter_F(msg):
     gimbal_ctrl.recenter()    
     time.sleep(2)
     led_ctrl.turn_off(rm_define.armor_all)
+    print(' ***** End marker',last_marker_name, 'procedure *****')
+    
       
 # marker 'D' found           
 def vision_recognized_marker_letter_D(msg):
@@ -274,6 +316,8 @@ def vision_recognized_marker_letter_D(msg):
     vision_ctrl.disable_detection(rm_define.vision_detection_marker)                
     gimbal_ctrl.recenter()
 
+
+    print(' ***** Marker found:', last_marker_name, '*****')
     # if danger marker found, robot has to move away from the wall, no need to aim
     media_ctrl.play_sound(rm_define.media_sound_attacked)
 
@@ -284,6 +328,7 @@ def vision_recognized_marker_letter_D(msg):
     gimbal_ctrl.pitch_ctrl(-20)
     #gimbal_ctrl.rotate_with_degree(rm_define.gimbal_down, 20)
     
+    print(' ***** End marker',last_marker_name, 'procedure *****')
     time.sleep(3)
    
 # marker '1' found
@@ -296,7 +341,13 @@ def vision_recognized_marker_number_one(msg):
 
     vision_ctrl.disable_detection(rm_define.vision_detection_marker)                
     media_ctrl.play_sound(rm_define.media_sound_recognize_success)
+    
+    print(' ***** Marker found:', last_marker_name, '*****')
+    
     gimbal_ctrl.recenter()
+    
+    print(' ***** End marker',last_marker_name, 'procedure *****')    
+    
     time.sleep(1)        
     led_ctrl.turn_off(rm_define.armor_bottom_all)
 
@@ -310,9 +361,17 @@ def vision_recognized_marker_number_two(msg):
 
     vision_ctrl.disable_detection(rm_define.vision_detection_marker)                
     media_ctrl.play_sound(rm_define.media_sound_recognize_success)
+    
+    print(' ***** Marker found:', last_marker_name, '*****')
+    
     gimbal_ctrl.recenter()
+    
+    print(' ***** End marker',last_marker_name, 'procedure *****')    
+    
     time.sleep(1)        
     led_ctrl.turn_off(rm_define.armor_bottom_all)
+    
+   
     
 # marker '3' found        
 def vision_recognized_marker_number_three(msg):
@@ -324,7 +383,12 @@ def vision_recognized_marker_number_three(msg):
 
     vision_ctrl.disable_detection(rm_define.vision_detection_marker)                
     media_ctrl.play_sound(rm_define.media_sound_recognize_success)
+    
+    print(' ***** Marker found:', last_marker_name, '*****')
+    
     gimbal_ctrl.recenter()
+    
+    print(' ***** End marker',last_marker_name, 'procedure *****')    
     time.sleep(1)        
     led_ctrl.turn_off(rm_define.armor_bottom_all)
     
@@ -367,7 +431,7 @@ def melody_with_lights():
     ]
 
     for note, duration, color in melody:
-        play_note_with_lights(note, duration, color)
+        play_music_with_lights(note, duration, color)
 
     # turn off the lights after the melody is done
     led_ctrl.turn_off(rm_define.armor_all)    
@@ -389,16 +453,18 @@ def robot_turn(degrees, clockwise=True, sleep_time=1.0):
     print('**** END TURNING AROUND ****')
 
 # reset point procedure, robot stops for 5 seconds and flashes the leds yellow color
-def reset_point_procedure(reset_point=True):
+def reset_point_procedure(current_step_id, current_step_name, reset_point=True):
     if reset_point:
-        print('reset point, sleeping for', RESET_SLEEP_TIME,'seconds')
+        print('reset point ', current_step_id,'(',current_step_name,') --> sleeping for', RESET_SLEEP_TIME,'seconds')
         media_ctrl.play_sound(rm_define.media_sound_count_down)
         led_ctrl.set_bottom_led(rm_define.armor_bottom_all, 255, 192, 0, rm_define.effect_flash)
         time.sleep(RESET_SLEEP_TIME)
+        if WAIT_FOR_CLAPS: wait_for_clap()
         led_ctrl.turn_off(rm_define.armor_bottom_all)
     else:
         print('regular point, sleeping 0.5 seconds')
         time.sleep(0.5)
+        if WAIT_FOR_CLAPS: wait_for_clap()
     
 # function prepares the list of distances for a simplified move 
 # (no marker look up, and no stopping at the marker points):
@@ -492,9 +558,13 @@ def move_forward_to_point(to_step_index,
     global last_marker_name
     global got_person
     global skip_next_movement
+    global already_going_back_to_stand
     
     final_point_name = names_list[to_step_index]
     print(':: MOVE FORWARD --> Final Destination:', final_point_name)
+    print(stop_points_list)
+    print(names_list)
+    print(distances_list)
     
     # reset gimbal and turn off leds just in case
     gimbal_ctrl.recenter()
@@ -521,20 +591,29 @@ def move_forward_to_point(to_step_index,
         need_zigzag = (step_name == ZIGZAG_POINT) and (do_actions)
         
         # do zigzag (if this is a first run) or just move forward
+        #need_zigzag = False
+        
+        #need_zigzag = False
+        
         if need_zigzag:
             print('**** DO ZIGZAG ****')
-            do_zigzag()
+            if step_name not in SET_DEBUGGING: 
+                do_zigzag()
         else:   
             # if we just dropped off a person and on the way back, skip movement of this marker step,
             # since the robot is driving through it up to the next reset or end point
             # scan for marker function will temporarily set last_marker_name to 'P'
+            
             if do_actions and skip_next_movement:
                 print('**** SKIP ROBOT MOVE STEP (after person drop off):', distance_to_move, 'cm ***')
                 skip_next_movement = False
             else: 
                 print('**** MOVE FORWARD ****', distance_to_move, 'cm')
-                move_forward(distance_to_move)
-                time.sleep(5)
+                if step_name not in SET_DEBUGGING:
+                    print('11111')
+                    #if (not do_not_move_forward) and (not person_on_board):
+                    move_forward(distance_to_move)
+                time.sleep(1)
                 print('**** END MOVING FORWARD ****')
 
         # account for possible manual override of the 1st and last points (even if in the list of reset points)
@@ -551,30 +630,27 @@ def move_forward_to_point(to_step_index,
             perform_dance()
     
         # if reset point, sleep for 5 sec and flash lights
-        reset_point_procedure(reset_point)
+        reset_point_procedure(step, step_name, reset_point)
 
+        #look_up_marker = False
         # look for marker if needed
         if look_up_marker:
             # if we are at point F, we need to move closer to the marker sideways            
             if step_name == SIDEWAYS_TO_MARKER:
                 sideways = True
-                print('**** LOOKING FOR MARKER **** (by moving chassis sideways)')
-                # here code to move closer to the marker sideways
+                distance = DISTANCE_TO_MOVE_SIDEWAYS_CLOSER_TO_MARKER
             else:
                 sideways = False
-                print('**** LOOKING FOR MARKER **** (by chassis rotation)')
-                # here code to rotate and move forward to the marker
+                distance = DISTANCE_TO_MOVE_CLOSER_TO_MARKER
                 
+            print('**** moving closer to MARKER ****, SIDEWAYS=', sideways)    
+            move_closer(distance, sideways)
+
+            # now scan for the marker
             scan_for_marker(sideways)
             
-            if step_name == SIDEWAYS_TO_MARKER:
-                sideways = True
-                print('**** LOOKING FOR MARKER **** (by moving chassis sideways)')
-                # here code to move closer to the marker sideways
-            else:
-                sideways = False
-                print('**** LOOKING FOR MARKER **** (by chassis rotation)')
-                # here code to rotate and move forward to the marker
+            print('**** moving away from MARKER ****, SIDEWAYS=', sideways)                                      
+            move_away(distance, sideways)
             
             # now code to move back to the path after scanning the marker
             print('**** END LOOKING FOR MARKER ****')
@@ -588,7 +664,8 @@ def move_forward_to_point(to_step_index,
                 perform_dance()
                
         # in case of a passenger, have to go back to the stand, and return (without looking for markers)
-        if got_person:
+        if got_person and (not already_going_back_to_stand):
+            already_going_back_to_stand = True
             print('**** GOT PERSON ****, have to return to the stand --> last_marker_name:', last_marker_name)
 
             # now need to truncate the list of distances to move, since we are going back to the stand    
@@ -620,12 +697,13 @@ def move_forward_to_point(to_step_index,
 
             # reset the flag that we got a person
             got_person = False
+            already_going_back_to_stand = False
             
 
         # if we were at point F, it is allowed to do the reset again after doing some stuff with the chassis
         if reset_point and do_actions and (step_name == SIDEWAYS_TO_MARKER) and ((last_marker_name == MARKER_1) or (last_marker_name == MARKER_3)):
             print('* Reset again after marker scan after sideways for marker 1 or 2*')
-            reset_point_procedure(reset_point)
+            reset_point_procedure(step, step_name, reset_point)
         
         # increment distance traveled
         distance_accumulator += distance_to_move
@@ -663,7 +741,9 @@ def start():
 
     # filling out list_distances with total distance to reach each stop point
     list_distances = fill_distances(DICT_STOPS['distance'])
-    print('== ROBOT PROGRAM START == PATH LENGTH:', total_distance, '--->', list_distances[steps-1], 'cm')   
+    print('== ROBOT PROGRAM START == PATH LENGTH: --->', list_distances[steps-1], 'cm')   
+    
+    wait_for_clap()
     
     # call move forward function to the last point H
     move_forward_to_point(steps-1)    
@@ -687,7 +767,7 @@ def start():
     move_forward_to_point(back_to_home_number_of_steps-1, back_to_home_stops, back_to_home_names, back_to_home_distances, False)
     
     robot_turn(180)
-    reset_point_procedure()
+    reset_point_procedure(999, 'END')
     
     # ALL DONE
         
