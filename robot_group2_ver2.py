@@ -933,11 +933,12 @@ def move_forward_to_point(to_step_index, stop_points_list, names_list, distances
 
         # if on the way back, then need to do robot dance at 'D' point
         do_dance = (step_name == DO_DANCE_STEP) and all_done_on_the_way_home
-        if do_dance and not STAND_STILL:
-            perform_dance()
-        elif do_dance and STAND_STILL:
-            melody_with_lights()            
-
+        if do_dance:
+            if STAND_STILL:
+                melody_with_lights()
+            else:
+                perform_dance()
+    
         # look for marker if needed
         if look_up_marker:
             # if we are at point F, we need to move closer to the marker sideways            
